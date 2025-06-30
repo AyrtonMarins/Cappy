@@ -1,0 +1,37 @@
+# Dependências do Node.js / Electron
+# Esta é a linha mais importante. Ela ignora a pasta que contém
+# centenas de arquivos, incluindo o "electron.exe" que causou o erro.
+node_modules/
+
+# Arquivos de log e debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Arquivos de Ambiente e Segredos
+# Se você criar um arquivo .env para guardar chaves de API ou segredos,
+# ele NUNCA deve ser enviado para o GitHub.
+.env
+
+# Cache e arquivos temporários do Python
+# O Python cria estas pastas para otimizar a execução.
+# Elas são específicas da sua máquina e não devem ser versionadas.
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ambiente Virtual do Python
+# Se você usa um ambiente como venv ou virtualenv, a pasta
+# que contém as bibliotecas Python instaladas deve ser ignorada.
+venv/
+.venv/
+env/
+.env/
+
+# Arquivos de sistema operacional
+.DS_Store
+Thumbs.db
+
+# Pasta com arquivos auxiliares e chaves
+Auxiliar/
