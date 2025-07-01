@@ -1,46 +1,110 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-// A linha 'require('electron-store')' foi removida daqui.
+const { PythonShell } = require('python-shell');
 
-const createWindow = () => {
-  const win = new BrowserWindow({
+/**
+ * Cria a janela principal do aplicativo.
+ */
+function createWindow() {
+  const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-    },
-  });
-
-  win.loadFile('index.html');
-};
-
-// A função dentro de .then() agora é 'async' para permitir o uso de 'await'
-app.whenReady().then(async () => {
-  // 1. A CORREÇÃO: Usamos import() dinâmico para carregar o módulo ES.
-  const { default: Store } = await import('electron-store');
-  
-  // 2. O resto do código agora fica aqui dentro, após o módulo ser carregado.
-  const store = new Store();
-
-  ipcMain.handle('get-store', (event, key) => {
-    return store.get(key);
-  });
-
-  ipcMain.on('set-store', (event, key, value) => {
-    store.set(key, value);
-  });
-
-  createWindow();
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+      preload: path.join(__dirname, 'preload.js') // Aponta para a nossa ponte segura
     }
+  });
+  mainWindow.loadFile('index.html');
+}
+
+// ==================================================================
+// HANDLERS DA API (Ouvintes de eventos do Frontend)
+// ==================================================================
+
+// Handler para buscar TODAS as atividades
+ipcMain.handle('get-activities', async () => {
+  let options = {
+    mode: 'text',
+    pythonPath: 'python',
+    pythonOptions: ['-u'],
+    scriptPath: __dirname,
+    args: ['get_activities_today']
+  };
+  try {
+    const results = await PythonShell.run('app.py', options);
+    return JSON.parse(results[0]);
+  } catch (err) {
+    console.error('Falha ao executar script Python (get-activities):', err);
+    return [];
+  }
+});
+
+// Handler para ADICIONAR uma atividade (usado pelo botão '+')
+ipcMain.handle('add-activity', async (event, { name, type }) => {
+  let options = {
+    mode: 'text',
+    pythonPath: 'python',
+    pythonOptions: ['-u'],
+    scriptPath: __dirname,
+    args: ['add_activity', name, type]
+  };
+  try {
+    const results = await PythonShell.run('app.py', options);
+    return JSON.parse(results[0]);
+  } catch (err) {
+    console.error('Falha ao executar script Python (add-activity):', err);
+    return { success: false, message: err.message };
+  }
+});
+
+// Handler para buscar os DETALHES de uma atividade
+ipcMain.handle('get-activity-details', async (event, activityId) => {
+  let options = {
+    mode: 'text',
+    pythonPath: 'python',
+    pythonOptions: ['-u'],
+    scriptPath: __dirname,
+    args: ['get_activity_details', activityId]
+  };
+  try {
+    const results = await PythonShell.run('app.py', options);
+    return JSON.parse(results[0]);
+  } catch (err) {
+    console.error(`Falha ao buscar detalhes para o ID ${activityId}:`, err);
+    return null;
+  }
+});
+
+// --- O HANDLER QUE FALTAVA ---
+// Handler para processar uma mensagem do CHAT
+ipcMain.handle('process-chat-message', async (event, userMessage) => {
+  let options = {
+    mode: 'text',
+    pythonPath: 'python',
+    pythonOptions: ['-u'],
+    scriptPath: __dirname,
+    args: ['process_chat_message', userMessage]
+  };
+  try {
+    const results = await PythonShell.run('app.py', options);
+    return JSON.parse(results[0]);
+  } catch (err) {
+    console.error('Falha ao processar mensagem no Python:', err);
+    return { response_text: "Desculpe, ocorreu um erro interno ao falar com minha IA." };
+  }
+});
+
+
+// ==================================================================
+// CICLO DE VIDA DO APLICATIVO
+// ==================================================================
+
+app.whenReady().then(() => {
+  createWindow();
+  app.on('activate', function () {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+app.on('window-all-closed', function () {
+  if (process.platform !== 'darwin') app.quit();
 });

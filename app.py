@@ -1,62 +1,67 @@
-# Importações necessárias
-from flask import Flask, request, jsonify
-from dotenv import load_dotenv
-import openai
-import os
+import sqlite3
+import sys
+import json
+from database import get_db_connection, create_tables
+from datetime import datetime
+import handler # <-- CORRIGIDO para corresponder ao seu nome de arquivo
 
-# Carrega as variáveis de ambiente (necessário para pegar a OPENAI_API_KEY)
-load_dotenv()
+# --- Funções do Banco de Dados (sem alterações) ---
 
-# Inicializa o aplicativo Flask
-app = Flask(__name__)
+def add_activity(name, type):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    scheduled_for = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    cursor.execute( "INSERT INTO activities (name, type, scheduled_for) VALUES (?, ?, ?)", (name, type, scheduled_for) )
+    activity_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    # MUDANÇA AQUI: Retorna um dicionário completo
+    return {"id": activity_id, "name": name, "type": type}
 
-# Configura o cliente da OpenAI
-# Ele vai procurar a variável de ambiente "OPENAI_API_KEY" automaticamente
-try:
-    client = openai.OpenAI()
-except openai.OpenAIError as e:
-    # Se a chave não for encontrada, o programa não vai nem iniciar.
-    # Isso é melhor do que dar erro durante uma requisição.
-    print("Erro: A variável de ambiente OPENAI_API_KEY não foi encontrada.")
-    print("Por favor, crie um arquivo .env e adicione a linha: OPENAI_API_KEY='sua_chave_aqui'")
-    client = None
+def get_activities_by_date(date_str):
+    conn = get_db_connection()
+    conn.row_factory = sqlite3.Row 
+    activities = [dict(row) for row in conn.execute( "SELECT id, name, type, status FROM activities WHERE date(scheduled_for) = ?", (date_str,) ).fetchall()]
+    conn.close()
+    return activities
 
-# Define a rota da API para o chat
-@app.route('/api/chat', methods=['POST'])
-def chat():
-    # Verifica se o cliente da OpenAI foi inicializado corretamente
-    if client is None:
-        return jsonify({"error": "O servidor não está configurado com uma chave de API da OpenAI."}), 500
+def get_activity_details(activity_id):
+    conn = get_db_connection()
+    conn.row_factory = sqlite3.Row
+    details = conn.execute( "SELECT id, name, type, status, scheduled_for, created_at FROM activities WHERE id = ?", (activity_id,) ).fetchone()
+    conn.close()
+    return dict(details) if details else None
 
-    # Pega os dados JSON enviados pelo frontend
-    data = request.get_json()
-    if not data or 'messages' not in data:
-        return jsonify({"error": "O corpo da requisição precisa ser um JSON com uma chave 'messages'."}), 400
+# --- Roteador de Comandos ---
 
-    messages_history = data['messages']
+def main():
+    if len(sys.argv) < 2: return
 
-    try:
-        # Faz a chamada para a API da OpenAI
-        response_object = client.chat.completions.create(
-            model="gpt-4o",  # Ou o modelo que você preferir
-            messages=messages_history
-        )
+    command = sys.argv[1]
 
-        # --- A CORREÇÃO ESTÁ AQUI ---
-        # Em vez de retornar o objeto inteiro, nós extraímos apenas o texto da resposta.
-        ai_message_text = response_object.choices[0].message.content
+    if command == "get_activities_today":
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        activities = get_activities_by_date(today_str)
+        print(json.dumps(activities))
+    
+    elif command == "add_activity":
+        name = sys.argv[2]
+        activity_type = sys.argv[3]
+        activity_id = add_activity(name, activity_type)
+        print(json.dumps({"success": True, "activity_id": activity_id}))
 
-        # Retornamos um JSON simples que o frontend consegue entender.
-        return jsonify({"response": ai_message_text})
+    elif command == "get_activity_details":
+        activity_id = sys.argv[2]
+        details = get_activity_details(activity_id)
+        print(json.dumps(details))
+    
+    elif command == "process_chat_message":
+        user_message = sys.argv[2]
+        # CORRIGIDO para usar o nome de módulo 'handler'
+        ai_response = handler.process_user_prompt(user_message)
+        print(json.dumps(ai_response))
 
-    except openai.APIError as e:
-        # Captura erros específicos da API da OpenAI
-        return jsonify({"error": f"Erro na API da OpenAI: {str(e)}"}), 500
-    except Exception as e:
-        # Captura qualquer outro erro inesperado no servidor
-        return jsonify({"error": f"Um erro inesperado ocorreu: {str(e)}"}), 500
-
-# Bloco para rodar o aplicativo diretamente
-# Inclui a correção 'use_reloader=False' para evitar erros no Windows
+# --- Bloco de Execução Principal ---
 if __name__ == '__main__':
-    app.run(debug=True, port=5000, use_reloader=False)
+    create_tables()
+    main()

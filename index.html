@@ -3,167 +3,174 @@
 <head>
     <meta charset="UTF-8">
     <title>Cappy</title>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; height: 100vh; margin: 0; background-color: #f4f4f9; }
-        #header { padding: 10px 20px; background-color: #ffffff; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; gap: 15px; }
-        #header h1 { margin: 0; font-size: 1.2em; }
-        .header-controls { display: flex; align-items: center; gap: 10px; }
-        #model-selector { padding: 5px; border-radius: 5px; }
-        #new-chat-button { background-color: #ff4d4d; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; }
-        #chat-container { flex-grow: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .message { padding: 10px 15px; border-radius: 12px; max-width: 80%; line-height: 1.5; word-wrap: break-word; }
-        .user-message { background-color: #007aff; color: white; align-self: flex-end; }
-        .ai-message { background-color: #e5e5ea; color: #000; align-self: flex-start; }
-        .error-message { background-color: #ffdddd; color: #d8000c; align-self: center; max-width: 90%; }
-        .ai-message pre { background-color: #2d2d2d; color: #f8f8f2; padding: 10px; border-radius: 5px; overflow-x: auto; }
-        #input-area { display: flex; padding: 10px; border-top: 1px solid #ddd; background-color: #ffffff; }
-        #input-text { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px; resize: none; font-size: 1em; font-family: inherit; }
-        #send-button { margin-left: 10px; background-color: #34c759; color: white; border: none; padding: 0 20px; border-radius: 5px; cursor: pointer; }
-        #send-button:disabled { background-color: #a9a9a9; }
+        /* --- ESTILOS GERAIS (sem grandes mudanças) --- */
+        :root {
+            --primary-blue: #1877f2;
+            --background-grey: #f0f2f5;
+            --container-background: #ffffff;
+            --text-primary: #1c1e21;
+            --text-secondary: #65676b;
+            --border-color: #dddfe2;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0; background-color: var(--background-grey); color: var(--text-primary);
+        }
+        .container { display: flex; height: 100vh; }
+        .column { padding: 20px; height: 100vh; box-sizing: border-box; }
+        #activity-list-container { width: 40%; border-right: 1px solid var(--border-color); overflow-y: auto; }
+        
+        /* --- NOVO CONTAINER DO ASSISTENTE --- */
+        #assistant-container {
+            width: 60%;
+            display: flex;
+            flex-direction: column; /* Organiza os itens verticalmente */
+        }
+        h1, h2 { border-bottom: 2px solid var(--primary-blue); padding-bottom: 10px; margin-top: 0; }
+        
+        /* --- ÁREA DE DETALHES (semelhante ao anterior) --- */
+        #details-content { padding-bottom: 15px; border-bottom: 1px solid var(--border-color); }
+
+        /* --- NOVOS ESTILOS PARA O CHAT --- */
+        #chat-container {
+            flex-grow: 1; /* Faz o chat ocupar o espaço restante */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Evita que o chat ultrapasse os limites */
+            padding-top: 15px;
+        }
+        #chat-history {
+            flex-grow: 1;
+            overflow-y: auto; /* Permite rolar o histórico */
+            padding: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+        .chat-message {
+            padding: 8px 12px;
+            border-radius: 18px;
+            margin-bottom: 8px;
+            max-width: 80%;
+            width: fit-content;
+        }
+        .user-message {
+            background-color: var(--primary-blue);
+            color: white;
+            align-self: flex-end; /* Alinha à direita */
+            margin-left: auto;
+        }
+        .ai-message {
+            background-color: #e4e6eb;
+            color: var(--text-primary);
+            align-self: flex-start; /* Alinha à esquerda */
+        }
+        #chat-input-container {
+            display: flex;
+        }
+        #chat-input {
+            flex-grow: 1;
+            border: 1px solid #ccc;
+            border-radius: 18px;
+            padding: 10px 15px;
+            font-size: 14px;
+        }
+        #send-btn {
+            background-color: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+
+        /* --- MODAL (sem mudanças) --- */
+        #add-activity-btn {
+            position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px;
+            border-radius: 50%; background-color: var(--primary-blue); color: white;
+            font-size: 36px; border: none; cursor: pointer; display: flex;
+            align-items: center; justify-content: center; box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); display: flex; align-items: center;
+            justify-content: center; z-index: 1000; visibility: hidden; opacity: 0;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.visible { visibility: visible; opacity: 1; }
+        .modal-content {
+            background-color: white; padding: 30px; border-radius: 8px;
+            width: 90%; max-width: 500px; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; padding-bottom: 15px; margin-bottom: 20px; }
+        .modal-header h2 { margin: 0; border: none; }
+        .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .submit-btn { width: 100%; padding: 12px; background-color: var(--primary-blue); color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <div id="header">
-        <h1>Cappy <span>Beta</span></h1>
-        <!-- 1. ADICIONA OS CONTROLES NO CABEÇALHO -->
-        <div class="header-controls">
-            <label for="model-selector">Modelo:</label>
-            <select id="model-selector">
-                <option value="llama3">Llama 3</option>
-                <option value="codellama">Code Llama</option>
-                <option value="gemma">Gemma</option>
-                <!-- Adicione outros modelos que você tenha no Ollama -->
-            </select>
-            <button id="new-chat-button">Limpar Conversa</button>
+    <div class="container">
+        <!-- Coluna da Esquerda (Lista de Atividades) - Sem Mudanças -->
+        <div class="column" id="activity-list-container">
+            <h1>Atividades de Hoje</h1>
+            <ul id="activity-list"></ul>
+        </div>
+
+        <!-- Coluna da Direita (Assistente) - ATUALIZADA -->
+        <div class="column" id="assistant-container">
+            <div id="details-content">
+                <h2>Detalhes</h2>
+                <p>Clique em uma atividade para ver os detalhes aqui.</p>
+            </div>
+            <div id="chat-container">
+                <h2>Assistente IA</h2>
+                <div id="chat-history">
+                    <!-- As mensagens do chat aparecerão aqui -->
+                    <div class="chat-message ai-message">Olá! Como posso ajudar você hoje?</div>
+                </div>
+                <div id="chat-input-container">
+                    <input type="text" id="chat-input" placeholder="Digite sua instrução...">
+                    <button id="send-btn">→</button>
+                </div>
+            </div>
         </div>
     </div>
-    <div id="chat-container"></div>
-    <div id="input-area">
-        <textarea id="input-text" placeholder="Digite sua mensagem... (Shift+Enter para enviar)" rows="1"></textarea>
-        <button id="send-button">Enviar</button>
+
+    <!-- Botão e Modal de Adicionar Atividade - Sem Mudanças -->
+    <button id="add-activity-btn">+</button>
+    <div id="add-activity-modal" class="modal-overlay">
+        <!-- Conteúdo do modal... -->
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Adicionar Nova Atividade</h2>
+                <button id="close-modal-btn" class="close-btn">&times;</button>
+            </div>
+            <form id="add-activity-form">
+                <div class="form-group">
+                    <label for="activity-name">Nome da Atividade:</label>
+                    <input type="text" id="activity-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="activity-type">Tipo:</label>
+                    <select id="activity-type">
+                        <option value="Trabalho">Trabalho</option>
+                        <option value="Estudo">Estudo</option>
+                        <option value="Pessoal">Pessoal</option>
+                        <option value="Lazer">Lazer</option>
+                    </select>
+                </div>
+                <button type="submit" class="submit-btn">Salvar Atividade</button>
+            </form>
+        </div>
     </div>
-    <script>
-        const sendButton = document.getElementById('send-button');
-        const newChatButton = document.getElementById('new-chat-button');
-        const inputText = document.getElementById('input-text');
-        const chatContainer = document.getElementById('chat-container');
-        const modelSelector = document.getElementById('model-selector'); // Pega o seletor
 
-        let conversationHistory = [];
-        let isStreaming = false;
-
-        function addMessageToUI(sender, text, isError = false) {
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('message');
-            if (isError) {
-                messageElement.classList.add('error-message');
-                messageElement.innerHTML = text;
-            } else {
-                messageElement.classList.add(sender === 'user' ? 'user-message' : 'ai-message');
-                messageElement.innerHTML = sender === 'ai' ? marked.parse(text) : text;
-            }
-            chatContainer.appendChild(messageElement);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-            return messageElement;
-        }
-
-        async function handleSend() {
-            // CORREÇÃO BUG 1: Garante que texto vazio não seja enviado.
-            if (isStreaming) return;
-            const userText = inputText.value.trim();
-            if (!userText) return;
-
-            isStreaming = true;
-            sendButton.disabled = true;
-            inputText.value = "";
-            inputText.style.height = 'auto';
-
-            conversationHistory.push({ role: 'user', content: userText });
-            addMessageToUI('user', userText);
-            
-            let aiMessageElement = addMessageToUI('ai', '...');
-            let fullResponse = "";
-            let errorOccurred = false;
-
-            try {
-                // 2. USA O VALOR DO SELETOR
-                const selectedModel = modelSelector.value;
-                await window.api.streamText(
-                    conversationHistory,
-                    selectedModel,
-                    (data) => {
-                        if (data.error) {
-                            errorOccurred = true;
-                            addMessageToUI(null, `<strong>Erro do Modelo:</strong> ${data.error}`, true);
-                            return;
-                        }
-                        if (data.message?.content) {
-                            if (aiMessageElement.innerHTML.includes('...')) aiMessageElement.innerHTML = '';
-                            fullResponse += data.message.content;
-                            aiMessageElement.innerHTML = marked.parse(fullResponse);
-                        }
-                    },
-                    (error) => {
-                        errorOccurred = true;
-                        addMessageToUI(null, `<strong>Erro de Comunicação:</strong> ${error}`, true);
-                    },
-                    () => {
-                        if (!errorOccurred) {
-                            conversationHistory.push({ role: 'assistant', content: fullResponse });
-                            window.api.setStore('conversationHistory', conversationHistory);
-                        }
-                    }
-                );
-            } catch (e) {
-                addMessageToUI(null, `<strong>Erro Crítico:</strong> ${e.message}`, true);
-            } finally {
-                isStreaming = false;
-                sendButton.disabled = false;
-                inputText.focus();
-            }
-        }
-        
-        async function loadSettings() {
-            // 3. CARREGA AS CONFIGURAÇÕES SALVAS (histórico e modelo)
-            const savedHistory = await window.api.getStore('conversationHistory');
-            if (savedHistory && Array.isArray(savedHistory)) {
-                conversationHistory = savedHistory;
-                chatContainer.innerHTML = '';
-                conversationHistory.forEach(message => {
-                    addMessageToUI(message.role === 'assistant' ? 'ai' : 'user', message.content);
-                });
-            }
-            const savedModel = await window.api.getStore('selectedModel');
-            if (savedModel) {
-                modelSelector.value = savedModel;
-            }
-        }
-
-        // --- EVENT LISTENERS ---
-        newChatButton.addEventListener('click', () => {
-            conversationHistory = [];
-            chatContainer.innerHTML = '';
-            window.api.setStore('conversationHistory', []);
-            isStreaming = false;
-            sendButton.disabled = false;
-            inputText.focus();
-        });
-
-        modelSelector.addEventListener('change', () => {
-            // 4. SALVA A ESCOLHA DO MODELO QUANDO ELA MUDA
-            window.api.setStore('selectedModel', modelSelector.value);
-        });
-
-        sendButton.addEventListener('click', handleSend);
-        inputText.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter' && event.shiftKey) {
-                event.preventDefault();
-                handleSend();
-            }
-        });
-        document.addEventListener('DOMContentLoaded', loadSettings);
-
-    </script>
+    <script src="./renderer.js"></script>
 </body>
 </html>

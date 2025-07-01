@@ -10,9 +10,18 @@
   "author": "AyrtonMarins",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^28.0.0"
+    "electron": "^28.3.3"
   },
   "dependencies": {
-    "electron-store": "^10.1.0"
-  }
+    "electron-store": "^10.1.0",
+    "python-shell": "^5.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AyrtonMarins/Cappy.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AyrtonMarins/Cappy/issues"
+  },
+  "homepage": "https://github.com/AyrtonMarins/Cappy#readme"
 }
