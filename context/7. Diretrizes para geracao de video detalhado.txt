@@ -1,0 +1,24 @@
+**Assunto: Diretrizes para Geração de Roteiros de Vídeo Detalhados e Emocionalmente Guiados**
+
+Para gerar roteiros de vídeo que capturem a essência e o detalhamento do exemplo "Pedacinho do Céu", a IA deve seguir as seguintes diretrizes:
+
+**I. Estrutura Geral do Roteiro e Temporização:**
+
+1.  **Segmentação por Tempo:** Divida o roteiro em segmentos de tempo claros (ex: `🕐 0s – 10s`).
+2.  **Sincronização com a Música:** Especifique o trecho correspondente da trilha sonora.
+
+**II. Conteúdo Detalhado para Cada Segmento:**
+
+Cada segmento deve conter:
+1.  **`Clima:`** (Atmosfera/Emoção)
+2.  **`Imagem:`** (Descrição Visual, Câmera, Texto na Tela)
+3.  **`Fala:`** (Diálogo/Narração)
+
+**III. A Música como Elemento Condutor:**
+
+*   A música não é apenas um fundo, mas uma força motriz para o roteiro. A progressão da música deve influenciar as ações e a edição.
+
+**IV. Narrativa (Storytelling):**
+
+*   O roteiro deve contar uma história coesa: Introdução -> Desenvolvimento -> Ação -> Resolução -> Conclusão.
+*   O tom deve ser pessoal e autêntico.
